@@ -246,9 +246,9 @@ Sherry Costume Control
 
 如果还是无法启动，再检查 BepInEx 是否安装正确。
 
-## 开发者：从源码编译
+## 从源码编译
 
-普通玩家不需要看这一节。只有想自己编译源码时才需要。
+如果只是安装插件，可以跳过这一节。下面是给想自己编译源码的用户看的。
 
 1. 复制本地引用配置：
 
@@ -279,8 +279,6 @@ Sherry Costume Control
 ```text
 src\Sherry.CostumeControl\bin\Release\net472\Sherry.CostumeControl.dll
 ```
-
-`GameReferences.props` 是本机私有文件，已被 `.gitignore` 忽略，不应该上传到 GitHub。
 
 ## 说明
 
