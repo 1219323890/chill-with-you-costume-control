@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <GameRoot>F:\STEAM\steamapps\common\Chill with You Lo-Fi Story</GameRoot>
+    <GameManagedDir>$(GameRoot)\Chill With You_Data\Managed</GameManagedDir>
+    <BepInExCoreDir>$(GameRoot)\BepInEx\core</BepInExCoreDir>
+  </PropertyGroup>
+</Project>
