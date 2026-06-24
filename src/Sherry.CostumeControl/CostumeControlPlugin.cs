@@ -136,12 +136,12 @@ namespace Sherry.CostumeControl
             UiRoot.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             UiRoot.AddComponent<GraphicRaycaster>();
 
-            var panel = CreateAnchoredRect("Panel", UiRoot.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-94f, 28f), new Vector2(330f, 360f));
+            var panel = CreateAnchoredRect("Panel", UiRoot.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-94f, -112f), new Vector2(330f, 360f));
             PanelObject = panel.gameObject;
             var panelImage = panel.gameObject.AddComponent<Image>();
             panelImage.color = new Color(0.04f, 0.05f, 0.07f, 0.86f);
 
-            ToggleObject = CreateCircleButton(UiRoot.transform, new Vector2(-24f, 56f), 60f, "衣装", () =>
+            ToggleObject = CreateCircleButton(UiRoot.transform, new Vector2(-24f, -112f), 56f, "衣装", () =>
             {
                 SetPanelVisible(true);
             });
