@@ -42,8 +42,13 @@ namespace Sherry.CostumeControl
         private static GameObject? UiRoot;
         private static GameObject? PanelObject;
         private static GameObject? ToggleObject;
+        private static GameObject[] PageObjects = Array.Empty<GameObject>();
         private static Text? StatusText;
         private static Text? LogText;
+        private static Text? PageText;
+        private static int CurrentPageIndex;
+        private static Vector2 TogglePosition = new Vector2(-34f, -222f);
+        private static Vector2 PanelPosition = new Vector2(-92f, -150f);
 
         private void Awake()
         {
@@ -137,14 +142,24 @@ namespace Sherry.CostumeControl
             UiRoot.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             UiRoot.AddComponent<GraphicRaycaster>();
 
-            var panel = CreateAnchoredRect("Panel", UiRoot.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-86f, -150f), new Vector2(330f, 438f));
+            var panel = CreateAnchoredRect("Panel", UiRoot.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), PanelPosition, new Vector2(330f, 276f));
             PanelObject = panel.gameObject;
             var panelImage = panel.gameObject.AddComponent<Image>();
             panelImage.color = new Color(0.04f, 0.05f, 0.07f, 0.86f);
+            AddDraggable(panel, position =>
+            {
+                PanelPosition = position;
+                SaveConfig();
+            });
 
-            ToggleObject = CreateCircleButton(UiRoot.transform, new Vector2(-27f, -212f), 48f, "衣装", () =>
+            ToggleObject = CreateCircleButton(UiRoot.transform, TogglePosition, 48f, "衣装", () =>
             {
                 SetPanelVisible(true);
+            });
+            AddDraggable(ToggleObject.GetComponent<RectTransform>(), position =>
+            {
+                TogglePosition = position;
+                SaveConfig();
             });
 
             var title = CreateText("Title", panel, new Vector2(14f, -12f), new Vector2(300f, 28f), "衣装", 20, TextAnchor.MiddleLeft);
@@ -156,40 +171,45 @@ namespace Sherry.CostumeControl
             });
 
             StatusText = CreateText("Status", panel, new Vector2(14f, -45f), new Vector2(298f, 50f), string.Empty, 13, TextAnchor.UpperLeft);
-            CreateText("CostumeHint", panel, new Vector2(14f, -82f), new Vector2(298f, 20f), "衣服：选择后会保存为今天的固定衣服", 12, TextAnchor.MiddleLeft).color = new Color(0.82f, 0.86f, 0.96f, 1f);
 
-            var y = -108f;
-            CreateButton(panel, new Vector2(14f, y), new Vector2(96f, 34f), "Default", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Default_1));
-            CreateButton(panel, new Vector2(118f, y), new Vector2(96f, 34f), "Polo 1", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Polo_1));
-            CreateButton(panel, new Vector2(222f, y), new Vector2(96f, 34f), "Polo 2", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Polo_2));
-
-            y -= 42f;
-            CreateButton(panel, new Vector2(14f, y), new Vector2(96f, 34f), "Tee 1", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Tee_1));
-            CreateButton(panel, new Vector2(118f, y), new Vector2(96f, 34f), "Tee 2", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Tee_2));
-            CreateButton(panel, new Vector2(222f, y), new Vector2(96f, 34f), "随机", RandomNextByUser);
-
-            y -= 50f;
-            CreateButton(panel, new Vector2(14f, y), new Vector2(148f, 34f), "应用并固定", () =>
+            var costumePage = CreatePage(panel, "CostumePage");
+            CreateText("CostumeHint", costumePage.transform, new Vector2(14f, -4f), new Vector2(298f, 36f), "衣服页：点击后立即切换，并保存为今天的固定衣服。", 12, TextAnchor.UpperLeft).color = new Color(0.82f, 0.86f, 0.96f, 1f);
+            CreateButton(costumePage.transform, new Vector2(14f, -48f), new Vector2(96f, 34f), "Default", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Default_1));
+            CreateButton(costumePage.transform, new Vector2(118f, -48f), new Vector2(96f, 34f), "Polo 1", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Polo_1));
+            CreateButton(costumePage.transform, new Vector2(222f, -48f), new Vector2(96f, 34f), "Polo 2", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Polo_2));
+            CreateButton(costumePage.transform, new Vector2(14f, -90f), new Vector2(96f, 34f), "Tee 1", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Tee_1));
+            CreateButton(costumePage.transform, new Vector2(118f, -90f), new Vector2(96f, 34f), "Tee 2", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Tee_2));
+            CreateButton(costumePage.transform, new Vector2(222f, -90f), new Vector2(96f, 34f), "随机", RandomNextByUser);
+            CreateButton(costumePage.transform, new Vector2(14f, -138f), new Vector2(148f, 34f), "应用并固定", () =>
             {
                 Mode = "fixed";
                 SaveConfig();
                 ApplySkinType(SelectedSkinType, true);
                 AddLog($"已应用并固定：{SelectedSkinType} ({(int)SelectedSkinType})");
             });
-            CreateButton(panel, new Vector2(170f, y), new Vector2(148f, 34f), "重载配置", ReloadConfigByUser);
+            CreateButton(costumePage.transform, new Vector2(170f, -138f), new Vector2(148f, 34f), "重载配置", ReloadConfigByUser);
 
-            y -= 52f;
-            CreateText("ActionHint", panel, new Vector2(14f, y + 26f), new Vector2(298f, 20f), "动作：主动切换角色状态，剧情/计时中可能无效", 12, TextAnchor.MiddleLeft).color = new Color(0.82f, 0.86f, 0.96f, 1f);
-            CreateButton(panel, new Vector2(14f, y), new Vector2(96f, 34f), "伸展", () => SelectActionByUi(HeroineAI.ActionStateType.WildStretchFullBody, "伸展"));
-            CreateButton(panel, new Vector2(118f, y), new Vector2(96f, 34f), "喝茶", () => SelectActionByUi(HeroineAI.ActionStateType.WildTea, "喝茶"));
-            CreateButton(panel, new Vector2(222f, y), new Vector2(96f, 34f), "打气", () => SelectActionByUi(HeroineAI.ActionStateType.WildGuts, "打气"));
+            var actionPage = CreatePage(panel, "ActionPage");
+            CreateText("ActionHint", actionPage.transform, new Vector2(14f, -4f), new Vector2(298f, 42f), "动作页：主动切换角色状态。剧情、工作或休息计时中可能会被游戏状态覆盖。", 12, TextAnchor.UpperLeft).color = new Color(0.82f, 0.86f, 0.96f, 1f);
+            CreateButton(actionPage.transform, new Vector2(14f, -58f), new Vector2(96f, 34f), "伸展", () => SelectActionByUi(HeroineAI.ActionStateType.WildStretchFullBody, "伸展"));
+            CreateButton(actionPage.transform, new Vector2(118f, -58f), new Vector2(96f, 34f), "喝茶", () => SelectActionByUi(HeroineAI.ActionStateType.WildTea, "喝茶"));
+            CreateButton(actionPage.transform, new Vector2(222f, -58f), new Vector2(96f, 34f), "打气", () => SelectActionByUi(HeroineAI.ActionStateType.WildGuts, "打气"));
+            CreateButton(actionPage.transform, new Vector2(14f, -100f), new Vector2(96f, 34f), "读书", () => SelectActionByUi(HeroineAI.ActionStateType.BreakReadBook, "读书"));
+            CreateButton(actionPage.transform, new Vector2(118f, -100f), new Vector2(96f, 34f), "休息", () => SelectActionByUi(HeroineAI.ActionStateType.BreakForward, "休息"));
+            CreateButton(actionPage.transform, new Vector2(222f, -100f), new Vector2(96f, 34f), "互动", PlayTouchReactionByUi);
+            CreateText("ActionTip", actionPage.transform, new Vector2(14f, -145f), new Vector2(298f, 34f), "提示：如果没有变化，先等角色进入房间主界面，或尝试暂停当前计时。", 12, TextAnchor.UpperLeft).color = new Color(0.82f, 0.86f, 0.96f, 1f);
 
-            y -= 42f;
-            CreateButton(panel, new Vector2(14f, y), new Vector2(96f, 34f), "读书", () => SelectActionByUi(HeroineAI.ActionStateType.BreakReadBook, "读书"));
-            CreateButton(panel, new Vector2(118f, y), new Vector2(96f, 34f), "休息", () => SelectActionByUi(HeroineAI.ActionStateType.BreakForward, "休息"));
-            CreateButton(panel, new Vector2(222f, y), new Vector2(96f, 34f), "互动", PlayTouchReactionByUi);
+            var logPage = CreatePage(panel, "LogPage");
+            CreateText("LogHint", logPage.transform, new Vector2(14f, -4f), new Vector2(298f, 28f), "日志页：用于确认服务捕获、配置重载和失败原因。", 12, TextAnchor.UpperLeft).color = new Color(0.82f, 0.86f, 0.96f, 1f);
+            LogText = CreateText("Logs", logPage.transform, new Vector2(14f, -36f), new Vector2(298f, 90f), string.Empty, 12, TextAnchor.UpperLeft);
+            CreateButton(logPage.transform, new Vector2(14f, -138f), new Vector2(148f, 34f), "重置位置", ResetUiPositions);
+            CreateButton(logPage.transform, new Vector2(170f, -138f), new Vector2(148f, 34f), "清空日志", ClearRecentLogs);
 
-            LogText = CreateText("Logs", panel, new Vector2(14f, -344f), new Vector2(298f, 76f), string.Empty, 12, TextAnchor.UpperLeft);
+            PageObjects = new[] { costumePage, actionPage, logPage };
+            CreateButton(panel, new Vector2(14f, -228f), new Vector2(72f, 30f), "上页", () => SetUiPage(CurrentPageIndex - 1));
+            PageText = CreateText("PageText", panel, new Vector2(98f, -228f), new Vector2(134f, 30f), string.Empty, 13, TextAnchor.MiddleCenter);
+            CreateButton(panel, new Vector2(246f, -228f), new Vector2(72f, 30f), "下页", () => SetUiPage(CurrentPageIndex + 1));
+            SetUiPage(CurrentPageIndex);
             UpdateUiText();
             SyncPanelVisible();
         }
@@ -205,6 +225,33 @@ namespace Sherry.CostumeControl
         {
             PanelObject?.SetActive(IsWindowVisible);
             ToggleObject?.SetActive(!IsWindowVisible);
+        }
+
+        private static void ResetUiPositions()
+        {
+            TogglePosition = new Vector2(-34f, -222f);
+            PanelPosition = new Vector2(-92f, -150f);
+
+            if (ToggleObject != null)
+            {
+                ToggleObject.GetComponent<RectTransform>().anchoredPosition = TogglePosition;
+            }
+
+            if (PanelObject != null)
+            {
+                PanelObject.GetComponent<RectTransform>().anchoredPosition = PanelPosition;
+            }
+
+            SaveConfig();
+            AddLog("已重置衣装按钮和面板位置。");
+        }
+
+        private static void ClearRecentLogs()
+        {
+            Array.Clear(RecentLogs, 0, RecentLogs.Length);
+            RecentLogCount = 0;
+            UpdateUiText();
+            AddLog("已清空面板日志。");
         }
 
         private static void EnsureEventSystem()
@@ -236,6 +283,39 @@ namespace Sherry.CostumeControl
             rectTransform.anchoredPosition = anchoredPosition;
             rectTransform.sizeDelta = size;
             return rectTransform;
+        }
+
+        private static GameObject CreatePage(Transform parent, string name)
+        {
+            var rectTransform = CreateRect(name, parent, new Vector2(0f, -88f), new Vector2(330f, 174f));
+            return rectTransform.gameObject;
+        }
+
+        private static void SetUiPage(int pageIndex)
+        {
+            if (PageObjects.Length == 0)
+            {
+                return;
+            }
+
+            CurrentPageIndex = Mathf.Clamp(pageIndex, 0, PageObjects.Length - 1);
+
+            for (var index = 0; index < PageObjects.Length; index++)
+            {
+                PageObjects[index].SetActive(index == CurrentPageIndex);
+            }
+
+            if (PageText != null)
+            {
+                var pageName = CurrentPageIndex == 0 ? "衣服" : CurrentPageIndex == 1 ? "动作" : "日志";
+                PageText.text = $"{pageName} {CurrentPageIndex + 1}/{PageObjects.Length}";
+            }
+        }
+
+        private static void AddDraggable(RectTransform rectTransform, Action<Vector2> onDragEnded)
+        {
+            var dragHandler = rectTransform.gameObject.AddComponent<DraggableRect>();
+            dragHandler.Initialize(onDragEnded);
         }
 
         private static Text CreateText(string name, Transform parent, Vector2 anchoredPosition, Vector2 size, string content, int fontSize, TextAnchor alignment)
@@ -520,6 +600,9 @@ namespace Sherry.CostumeControl
                 AddLog($"配置中的 skinType 无效：{skinTypeValue}，已继续使用 {SelectedSkinType}。");
             }
 
+            TogglePosition = new Vector2(ReadFloat(text, "toggleX", TogglePosition.x), ReadFloat(text, "toggleY", TogglePosition.y));
+            PanelPosition = new Vector2(ReadFloat(text, "panelX", PanelPosition.x), ReadFloat(text, "panelY", PanelPosition.y));
+
             LastConfigWriteTimeUtc = File.GetLastWriteTimeUtc(ConfigFilePath);
         }
 
@@ -550,6 +633,10 @@ namespace Sherry.CostumeControl
             return "{\n"
                 + "  \"mode\": \"" + Mode + "\",\n"
                 + "  \"skinType\": " + (int)SelectedSkinType + ",\n"
+                + "  \"toggleX\": " + FormatFloat(TogglePosition.x) + ",\n"
+                + "  \"toggleY\": " + FormatFloat(TogglePosition.y) + ",\n"
+                + "  \"panelX\": " + FormatFloat(PanelPosition.x) + ",\n"
+                + "  \"panelY\": " + FormatFloat(PanelPosition.y) + ",\n"
                 + "  \"availableSkinTypes\": {\n"
                 + "    \"Default_1\": 1,\n"
                 + "    \"Polo_1\": 1001,\n"
@@ -575,6 +662,65 @@ namespace Sherry.CostumeControl
         {
             var match = Regex.Match(text, "\"" + Regex.Escape(key) + "\"\\s*:\\s*(-?\\d+)");
             return match.Success && int.TryParse(match.Groups[1].Value, out var value) ? value : defaultValue;
+        }
+
+        private static float ReadFloat(string text, string key, float defaultValue)
+        {
+            var match = Regex.Match(text, "\"" + Regex.Escape(key) + "\"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)");
+            return match.Success && float.TryParse(match.Groups[1].Value, out var value) ? value : defaultValue;
+        }
+
+        private static string FormatFloat(float value)
+        {
+            return value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private sealed class DraggableRect : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+        {
+            private RectTransform? RectTransform;
+            private Canvas? Canvas;
+            private Action<Vector2>? OnDragEnded;
+
+            public void Initialize(Action<Vector2> onDragEnded)
+            {
+                RectTransform = GetComponent<RectTransform>();
+                Canvas = GetComponentInParent<Canvas>();
+                OnDragEnded = onDragEnded;
+            }
+
+            public void OnBeginDrag(PointerEventData eventData)
+            {
+                if (RectTransform == null)
+                {
+                    RectTransform = GetComponent<RectTransform>();
+                }
+
+                if (Canvas == null)
+                {
+                    Canvas = GetComponentInParent<Canvas>();
+                }
+            }
+
+            public void OnDrag(PointerEventData eventData)
+            {
+                if (RectTransform == null)
+                {
+                    return;
+                }
+
+                var scaleFactor = Canvas == null || Canvas.scaleFactor <= 0f ? 1f : Canvas.scaleFactor;
+                RectTransform.anchoredPosition += eventData.delta / scaleFactor;
+            }
+
+            public void OnEndDrag(PointerEventData eventData)
+            {
+                if (RectTransform == null)
+                {
+                    return;
+                }
+
+                OnDragEnded?.Invoke(RectTransform.anchoredPosition);
+            }
         }
 
         [HarmonyPatch(typeof(CostumeChangeService), nameof(CostumeChangeService.ChangeTodayCostume))]
