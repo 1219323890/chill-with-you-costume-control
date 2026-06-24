@@ -142,7 +142,7 @@ namespace Sherry.CostumeControl
             UiRoot.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             UiRoot.AddComponent<GraphicRaycaster>();
 
-            var panel = CreateAnchoredRect("Panel", UiRoot.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), PanelPosition, new Vector2(330f, 276f));
+            var panel = CreateAnchoredRect("Panel", UiRoot.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), PanelPosition, new Vector2(330f, 314f));
             PanelObject = panel.gameObject;
             var panelImage = panel.gameObject.AddComponent<Image>();
             panelImage.color = new Color(0.04f, 0.05f, 0.07f, 0.86f);
@@ -170,45 +170,45 @@ namespace Sherry.CostumeControl
                 SetPanelVisible(false);
             });
 
-            StatusText = CreateText("Status", panel, new Vector2(14f, -45f), new Vector2(298f, 50f), string.Empty, 13, TextAnchor.UpperLeft);
+            StatusText = CreateText("Status", panel, new Vector2(14f, -45f), new Vector2(298f, 44f), string.Empty, 12, TextAnchor.UpperLeft);
 
             var costumePage = CreatePage(panel, "CostumePage");
-            CreateText("CostumeHint", costumePage.transform, new Vector2(14f, -4f), new Vector2(298f, 36f), "衣服页：点击后立即切换，并保存为今天的固定衣服。", 12, TextAnchor.UpperLeft).color = new Color(0.82f, 0.86f, 0.96f, 1f);
-            CreateButton(costumePage.transform, new Vector2(14f, -48f), new Vector2(96f, 34f), "Default", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Default_1));
-            CreateButton(costumePage.transform, new Vector2(118f, -48f), new Vector2(96f, 34f), "Polo 1", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Polo_1));
-            CreateButton(costumePage.transform, new Vector2(222f, -48f), new Vector2(96f, 34f), "Polo 2", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Polo_2));
-            CreateButton(costumePage.transform, new Vector2(14f, -90f), new Vector2(96f, 34f), "Tee 1", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Tee_1));
-            CreateButton(costumePage.transform, new Vector2(118f, -90f), new Vector2(96f, 34f), "Tee 2", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Tee_2));
-            CreateButton(costumePage.transform, new Vector2(222f, -90f), new Vector2(96f, 34f), "随机", RandomNextByUser);
-            CreateButton(costumePage.transform, new Vector2(14f, -138f), new Vector2(148f, 34f), "应用并固定", () =>
+            CreateText("CostumeHint", costumePage.transform, new Vector2(14f, -2f), new Vector2(298f, 24f), "衣服页：点击后立即切换并固定到今天。", 12, TextAnchor.UpperLeft).color = new Color(0.82f, 0.86f, 0.96f, 1f);
+            CreateButton(costumePage.transform, new Vector2(14f, -34f), new Vector2(96f, 32f), "Default", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Default_1));
+            CreateButton(costumePage.transform, new Vector2(118f, -34f), new Vector2(96f, 32f), "Polo 1", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Polo_1));
+            CreateButton(costumePage.transform, new Vector2(222f, -34f), new Vector2(96f, 32f), "Polo 2", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Polo_2));
+            CreateButton(costumePage.transform, new Vector2(14f, -74f), new Vector2(96f, 32f), "Tee 1", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Tee_1));
+            CreateButton(costumePage.transform, new Vector2(118f, -74f), new Vector2(96f, 32f), "Tee 2", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Tee_2));
+            CreateButton(costumePage.transform, new Vector2(222f, -74f), new Vector2(96f, 32f), "随机", RandomNextByUser);
+            CreateButton(costumePage.transform, new Vector2(14f, -120f), new Vector2(148f, 32f), "应用并固定", () =>
             {
                 Mode = "fixed";
                 SaveConfig();
                 ApplySkinType(SelectedSkinType, true);
                 AddLog($"已应用并固定：{SelectedSkinType} ({(int)SelectedSkinType})");
             });
-            CreateButton(costumePage.transform, new Vector2(170f, -138f), new Vector2(148f, 34f), "重载配置", ReloadConfigByUser);
+            CreateButton(costumePage.transform, new Vector2(170f, -120f), new Vector2(148f, 32f), "重载配置", ReloadConfigByUser);
 
             var actionPage = CreatePage(panel, "ActionPage");
-            CreateText("ActionHint", actionPage.transform, new Vector2(14f, -4f), new Vector2(298f, 42f), "动作页：主动切换角色状态。剧情、工作或休息计时中可能会被游戏状态覆盖。", 12, TextAnchor.UpperLeft).color = new Color(0.82f, 0.86f, 0.96f, 1f);
-            CreateButton(actionPage.transform, new Vector2(14f, -58f), new Vector2(96f, 34f), "伸展", () => SelectActionByUi(HeroineAI.ActionStateType.WildStretchFullBody, "伸展"));
-            CreateButton(actionPage.transform, new Vector2(118f, -58f), new Vector2(96f, 34f), "喝茶", () => SelectActionByUi(HeroineAI.ActionStateType.WildTea, "喝茶"));
-            CreateButton(actionPage.transform, new Vector2(222f, -58f), new Vector2(96f, 34f), "打气", () => SelectActionByUi(HeroineAI.ActionStateType.WildGuts, "打气"));
-            CreateButton(actionPage.transform, new Vector2(14f, -100f), new Vector2(96f, 34f), "读书", () => SelectActionByUi(HeroineAI.ActionStateType.BreakReadBook, "读书"));
-            CreateButton(actionPage.transform, new Vector2(118f, -100f), new Vector2(96f, 34f), "休息", () => SelectActionByUi(HeroineAI.ActionStateType.BreakForward, "休息"));
-            CreateButton(actionPage.transform, new Vector2(222f, -100f), new Vector2(96f, 34f), "互动", PlayTouchReactionByUi);
-            CreateText("ActionTip", actionPage.transform, new Vector2(14f, -145f), new Vector2(298f, 34f), "提示：如果没有变化，先等角色进入房间主界面，或尝试暂停当前计时。", 12, TextAnchor.UpperLeft).color = new Color(0.82f, 0.86f, 0.96f, 1f);
+            CreateText("ActionHint", actionPage.transform, new Vector2(14f, -2f), new Vector2(298f, 24f), "动作页：剧情或计时中可能被游戏状态覆盖。", 12, TextAnchor.UpperLeft).color = new Color(0.82f, 0.86f, 0.96f, 1f);
+            CreateButton(actionPage.transform, new Vector2(14f, -34f), new Vector2(96f, 32f), "伸展", () => SelectActionByUi(HeroineAI.ActionStateType.WildStretchFullBody, "伸展"));
+            CreateButton(actionPage.transform, new Vector2(118f, -34f), new Vector2(96f, 32f), "喝茶", () => SelectActionByUi(HeroineAI.ActionStateType.WildTea, "喝茶"));
+            CreateButton(actionPage.transform, new Vector2(222f, -34f), new Vector2(96f, 32f), "打气", () => SelectActionByUi(HeroineAI.ActionStateType.WildGuts, "打气"));
+            CreateButton(actionPage.transform, new Vector2(14f, -74f), new Vector2(96f, 32f), "读书", () => SelectActionByUi(HeroineAI.ActionStateType.BreakReadBook, "读书"));
+            CreateButton(actionPage.transform, new Vector2(118f, -74f), new Vector2(96f, 32f), "休息", () => SelectActionByUi(HeroineAI.ActionStateType.BreakForward, "休息"));
+            CreateButton(actionPage.transform, new Vector2(222f, -74f), new Vector2(96f, 32f), "互动", PlayTouchReactionByUi);
+            CreateText("ActionTip", actionPage.transform, new Vector2(14f, -120f), new Vector2(298f, 24f), "无变化时，先等角色进入房间主界面。", 12, TextAnchor.UpperLeft).color = new Color(0.82f, 0.86f, 0.96f, 1f);
 
             var logPage = CreatePage(panel, "LogPage");
             CreateText("LogHint", logPage.transform, new Vector2(14f, -4f), new Vector2(298f, 28f), "日志页：用于确认服务捕获、配置重载和失败原因。", 12, TextAnchor.UpperLeft).color = new Color(0.82f, 0.86f, 0.96f, 1f);
-            LogText = CreateText("Logs", logPage.transform, new Vector2(14f, -36f), new Vector2(298f, 90f), string.Empty, 12, TextAnchor.UpperLeft);
-            CreateButton(logPage.transform, new Vector2(14f, -138f), new Vector2(148f, 34f), "重置位置", ResetUiPositions);
-            CreateButton(logPage.transform, new Vector2(170f, -138f), new Vector2(148f, 34f), "清空日志", ClearRecentLogs);
+            LogText = CreateText("Logs", logPage.transform, new Vector2(14f, -36f), new Vector2(298f, 78f), string.Empty, 12, TextAnchor.UpperLeft);
+            CreateButton(logPage.transform, new Vector2(14f, -120f), new Vector2(148f, 32f), "重置位置", ResetUiPositions);
+            CreateButton(logPage.transform, new Vector2(170f, -120f), new Vector2(148f, 32f), "清空日志", ClearRecentLogs);
 
             PageObjects = new[] { costumePage, actionPage, logPage };
-            CreateButton(panel, new Vector2(14f, -228f), new Vector2(72f, 30f), "上页", () => SetUiPage(CurrentPageIndex - 1));
-            PageText = CreateText("PageText", panel, new Vector2(98f, -228f), new Vector2(134f, 30f), string.Empty, 13, TextAnchor.MiddleCenter);
-            CreateButton(panel, new Vector2(246f, -228f), new Vector2(72f, 30f), "下页", () => SetUiPage(CurrentPageIndex + 1));
+            CreateButton(panel, new Vector2(14f, -268f), new Vector2(72f, 30f), "上页", () => SetUiPage(CurrentPageIndex - 1));
+            PageText = CreateText("PageText", panel, new Vector2(98f, -268f), new Vector2(134f, 30f), string.Empty, 13, TextAnchor.MiddleCenter);
+            CreateButton(panel, new Vector2(246f, -268f), new Vector2(72f, 30f), "下页", () => SetUiPage(CurrentPageIndex + 1));
             SetUiPage(CurrentPageIndex);
             UpdateUiText();
             SyncPanelVisible();
@@ -287,7 +287,7 @@ namespace Sherry.CostumeControl
 
         private static GameObject CreatePage(Transform parent, string name)
         {
-            var rectTransform = CreateRect(name, parent, new Vector2(0f, -88f), new Vector2(330f, 174f));
+            var rectTransform = CreateRect(name, parent, new Vector2(0f, -96f), new Vector2(330f, 154f));
             return rectTransform.gameObject;
         }
 
