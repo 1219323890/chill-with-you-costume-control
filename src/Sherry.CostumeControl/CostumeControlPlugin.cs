@@ -28,6 +28,7 @@ namespace Sherry.CostumeControl
         private static readonly System.Random Random = new System.Random();
         private static ManualLogSource Log = null!;
         private static CostumeChangeService? CurrentService;
+        private static Bulbul.HeroineService? CurrentHeroineService;
         private static string ConfigFilePath = string.Empty;
         private static DateTime LastConfigWriteTimeUtc;
         private static string Mode = "fixed";
@@ -136,12 +137,12 @@ namespace Sherry.CostumeControl
             UiRoot.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             UiRoot.AddComponent<GraphicRaycaster>();
 
-            var panel = CreateAnchoredRect("Panel", UiRoot.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-94f, -112f), new Vector2(330f, 360f));
+            var panel = CreateAnchoredRect("Panel", UiRoot.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-86f, -150f), new Vector2(330f, 438f));
             PanelObject = panel.gameObject;
             var panelImage = panel.gameObject.AddComponent<Image>();
             panelImage.color = new Color(0.04f, 0.05f, 0.07f, 0.86f);
 
-            ToggleObject = CreateCircleButton(UiRoot.transform, new Vector2(-24f, -112f), 56f, "衣装", () =>
+            ToggleObject = CreateCircleButton(UiRoot.transform, new Vector2(-27f, -212f), 48f, "衣装", () =>
             {
                 SetPanelVisible(true);
             });
@@ -155,8 +156,9 @@ namespace Sherry.CostumeControl
             });
 
             StatusText = CreateText("Status", panel, new Vector2(14f, -45f), new Vector2(298f, 50f), string.Empty, 13, TextAnchor.UpperLeft);
+            CreateText("CostumeHint", panel, new Vector2(14f, -82f), new Vector2(298f, 20f), "衣服：选择后会保存为今天的固定衣服", 12, TextAnchor.MiddleLeft).color = new Color(0.82f, 0.86f, 0.96f, 1f);
 
-            var y = -106f;
+            var y = -108f;
             CreateButton(panel, new Vector2(14f, y), new Vector2(96f, 34f), "Default", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Default_1));
             CreateButton(panel, new Vector2(118f, y), new Vector2(96f, 34f), "Polo 1", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Polo_1));
             CreateButton(panel, new Vector2(222f, y), new Vector2(96f, 34f), "Polo 2", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Polo_2));
@@ -176,7 +178,18 @@ namespace Sherry.CostumeControl
             });
             CreateButton(panel, new Vector2(170f, y), new Vector2(148f, 34f), "重载配置", ReloadConfigByUser);
 
-            LogText = CreateText("Logs", panel, new Vector2(14f, -238f), new Vector2(298f, 104f), string.Empty, 12, TextAnchor.UpperLeft);
+            y -= 52f;
+            CreateText("ActionHint", panel, new Vector2(14f, y + 26f), new Vector2(298f, 20f), "动作：主动切换角色状态，剧情/计时中可能无效", 12, TextAnchor.MiddleLeft).color = new Color(0.82f, 0.86f, 0.96f, 1f);
+            CreateButton(panel, new Vector2(14f, y), new Vector2(96f, 34f), "伸展", () => SelectActionByUi(HeroineAI.ActionStateType.WildStretchFullBody, "伸展"));
+            CreateButton(panel, new Vector2(118f, y), new Vector2(96f, 34f), "喝茶", () => SelectActionByUi(HeroineAI.ActionStateType.WildTea, "喝茶"));
+            CreateButton(panel, new Vector2(222f, y), new Vector2(96f, 34f), "打气", () => SelectActionByUi(HeroineAI.ActionStateType.WildGuts, "打气"));
+
+            y -= 42f;
+            CreateButton(panel, new Vector2(14f, y), new Vector2(96f, 34f), "读书", () => SelectActionByUi(HeroineAI.ActionStateType.BreakReadBook, "读书"));
+            CreateButton(panel, new Vector2(118f, y), new Vector2(96f, 34f), "休息", () => SelectActionByUi(HeroineAI.ActionStateType.BreakForward, "休息"));
+            CreateButton(panel, new Vector2(222f, y), new Vector2(96f, 34f), "互动", PlayTouchReactionByUi);
+
+            LogText = CreateText("Logs", panel, new Vector2(14f, -344f), new Vector2(298f, 76f), string.Empty, 12, TextAnchor.UpperLeft);
             UpdateUiText();
             SyncPanelVisible();
         }
@@ -315,7 +328,7 @@ namespace Sherry.CostumeControl
         {
             if (StatusText != null)
             {
-                StatusText.text = $"服务：{(CurrentService == null ? "未捕获" : "已捕获")}\n模式：{Mode}    当前：{SelectedSkinType} ({(int)SelectedSkinType})";
+                StatusText.text = $"衣服服务：{(CurrentService == null ? "未捕获" : "已捕获")}    动作服务：{(CurrentHeroineService == null ? "未捕获" : "已捕获")}\n当前衣服：{SelectedSkinType} ({(int)SelectedSkinType})";
             }
 
             if (LogText != null)
@@ -333,6 +346,44 @@ namespace Sherry.CostumeControl
             ApplySkinType(nextSkinType, true);
             ShowToast($"Sherry衣服控制：随机切换到 {nextSkinType} ({(int)nextSkinType})");
             AddLog($"已随机切换衣服：{nextSkinType} ({(int)nextSkinType})");
+        }
+
+        private static void SelectActionByUi(HeroineAI.ActionStateType actionStateType, string label)
+        {
+            if (CurrentHeroineService == null)
+            {
+                AddLog("还没有捕获到动作服务，进入房间主界面后再试。");
+                return;
+            }
+
+            try
+            {
+                CurrentHeroineService.DebugChangeState(actionStateType);
+                AddLog($"已请求动作：{label} ({actionStateType})");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"动作请求失败：{ex.Message}");
+            }
+        }
+
+        private static void PlayTouchReactionByUi()
+        {
+            if (CurrentHeroineService == null)
+            {
+                AddLog("还没有捕获到动作服务，进入房间主界面后再试。");
+                return;
+            }
+
+            try
+            {
+                CurrentHeroineService.OnStartClickHeroineReaction();
+                AddLog("已请求互动反应。");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"互动请求失败：{ex.Message}");
+            }
         }
 
         private static void FixCurrentByUser()
@@ -391,6 +442,17 @@ namespace Sherry.CostumeControl
             }
 
             CurrentService = service;
+            EnsureUi();
+        }
+
+        private static void CaptureHeroineService(Bulbul.HeroineService service)
+        {
+            if (CurrentHeroineService == null)
+            {
+                AddLog("已捕获动作服务。");
+            }
+
+            CurrentHeroineService = service;
             EnsureUi();
         }
 
@@ -521,6 +583,24 @@ namespace Sherry.CostumeControl
             private static void Prefix(CostumeChangeService __instance)
             {
                 CaptureService(__instance);
+            }
+        }
+
+        [HarmonyPatch(typeof(Bulbul.HeroineService), nameof(Bulbul.HeroineService.OnGameStart))]
+        private static class HeroineServiceOnGameStartPatch
+        {
+            private static void Prefix(Bulbul.HeroineService __instance)
+            {
+                CaptureHeroineService(__instance);
+            }
+        }
+
+        [HarmonyPatch(typeof(Bulbul.HeroineService), nameof(Bulbul.HeroineService.DebugChangeState))]
+        private static class HeroineServiceDebugChangeStatePatch
+        {
+            private static void Prefix(Bulbul.HeroineService __instance)
+            {
+                CaptureHeroineService(__instance);
             }
         }
 
