@@ -35,9 +35,7 @@ namespace Sherry.CostumeControl
         private static float ToastEndTime;
         private static string ToastText = string.Empty;
         private static bool HasLoggedUpdate;
-        private static bool IsWindowVisible = true;
-        private static Rect WindowRect = new Rect(24f, 72f, 430f, 470f);
-        private static Vector2 LogScroll;
+        private static bool IsWindowVisible;
         private static readonly string[] RecentLogs = new string[10];
         private static int RecentLogCount;
         private static GameObject? UiRoot;
@@ -116,85 +114,6 @@ namespace Sherry.CostumeControl
             {
                 GUI.Label(new Rect(16f, 16f, 640f, 32f), ToastText);
             }
-
-            if (IsWindowVisible)
-            {
-                WindowRect = GUI.Window(918230, WindowRect, DrawWindow, "Sherry 衣服控制");
-            }
-        }
-
-        private static void DrawWindow(int windowId)
-        {
-            GUILayout.Label($"状态：{(CurrentService == null ? "未捕获衣服服务" : "已捕获衣服服务")}");
-            GUILayout.Label($"模式：{Mode}");
-            GUILayout.Label($"当前选择：{SelectedSkinType} ({(int)SelectedSkinType})");
-
-            GUILayout.Space(8f);
-            GUILayout.Label("选择衣服");
-            GUILayout.BeginHorizontal();
-            DrawSkinButton(CostumeChangeService.CostumeSkinType.Default_1);
-            DrawSkinButton(CostumeChangeService.CostumeSkinType.Polo_1);
-            DrawSkinButton(CostumeChangeService.CostumeSkinType.Polo_2);
-            GUILayout.EndHorizontal();
-
-            GUILayout.BeginHorizontal();
-            DrawSkinButton(CostumeChangeService.CostumeSkinType.Tee_1);
-            DrawSkinButton(CostumeChangeService.CostumeSkinType.Tee_2);
-            GUILayout.EndHorizontal();
-
-            GUILayout.Space(8f);
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("应用并固定", GUILayout.Height(32f)))
-            {
-                Mode = "fixed";
-                SaveConfig();
-                ApplySkinType(SelectedSkinType, true);
-                AddLog($"已应用并固定：{SelectedSkinType} ({(int)SelectedSkinType})");
-            }
-
-            if (GUILayout.Button("随机一套", GUILayout.Height(32f)))
-            {
-                RandomNextByUser();
-            }
-            GUILayout.EndHorizontal();
-
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("重载配置", GUILayout.Height(28f)))
-            {
-                ReloadConfigByUser();
-            }
-
-            if (GUILayout.Button("隐藏面板 F7", GUILayout.Height(28f)))
-            {
-                SetPanelVisible(false);
-            }
-            GUILayout.EndHorizontal();
-
-            GUILayout.Space(8f);
-            GUILayout.Label("日志");
-            LogScroll = GUILayout.BeginScrollView(LogScroll, GUILayout.Height(150f));
-            for (var index = 0; index < RecentLogCount; index++)
-            {
-                GUILayout.Label(RecentLogs[index]);
-            }
-            GUILayout.EndScrollView();
-
-            GUILayout.Space(4f);
-            GUILayout.Label("提示：如果状态一直是未捕获，先进入房间主界面再点应用。");
-            GUI.DragWindow(new Rect(0f, 0f, 10000f, 24f));
-        }
-
-        private static void DrawSkinButton(CostumeChangeService.CostumeSkinType skinType)
-        {
-            var label = skinType == SelectedSkinType ? $"* {skinType}" : skinType.ToString();
-            if (GUILayout.Button(label, GUILayout.Height(30f)))
-            {
-                SelectedSkinType = skinType;
-                Mode = "fixed";
-                SaveConfig();
-                ApplySkinType(skinType, true);
-                AddLog($"已选择：{skinType} ({(int)skinType})");
-            }
         }
 
         private static void EnsureUi()
@@ -202,7 +121,7 @@ namespace Sherry.CostumeControl
             if (UiRoot != null)
             {
                 UpdateUiText();
-                SetPanelVisible(IsWindowVisible);
+                SyncPanelVisible();
                 return;
             }
 
@@ -217,56 +136,62 @@ namespace Sherry.CostumeControl
             UiRoot.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             UiRoot.AddComponent<GraphicRaycaster>();
 
-            var panel = CreateRect("Panel", UiRoot.transform, new Vector2(24f, -72f), new Vector2(430f, 430f));
+            var panel = CreateAnchoredRect("Panel", UiRoot.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-94f, 28f), new Vector2(330f, 360f));
             PanelObject = panel.gameObject;
             var panelImage = panel.gameObject.AddComponent<Image>();
-            panelImage.color = new Color(0.04f, 0.05f, 0.07f, 0.88f);
+            panelImage.color = new Color(0.04f, 0.05f, 0.07f, 0.86f);
 
-            ToggleObject = CreateButton(UiRoot.transform, new Vector2(24f, -72f), new Vector2(76f, 36f), "衣装", () =>
+            ToggleObject = CreateCircleButton(UiRoot.transform, new Vector2(-24f, 56f), 60f, "衣装", () =>
             {
                 SetPanelVisible(true);
             });
 
-            var title = CreateText("Title", panel, new Vector2(14f, -12f), new Vector2(390f, 28f), "Sherry 衣服控制", 20, TextAnchor.MiddleLeft);
+            var title = CreateText("Title", panel, new Vector2(14f, -12f), new Vector2(300f, 28f), "衣装", 20, TextAnchor.MiddleLeft);
             title.color = new Color(1f, 0.88f, 0.96f, 1f);
 
-            StatusText = CreateText("Status", panel, new Vector2(14f, -45f), new Vector2(390f, 52f), string.Empty, 14, TextAnchor.UpperLeft);
+            CreateButton(panel, new Vector2(254f, -10f), new Vector2(58f, 30f), "收起", () =>
+            {
+                SetPanelVisible(false);
+            });
+
+            StatusText = CreateText("Status", panel, new Vector2(14f, -45f), new Vector2(298f, 50f), string.Empty, 13, TextAnchor.UpperLeft);
 
             var y = -106f;
-            CreateButton(panel, new Vector2(14f, y), new Vector2(128f, 34f), "Default_1", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Default_1));
-            CreateButton(panel, new Vector2(150f, y), new Vector2(128f, 34f), "Polo_1", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Polo_1));
-            CreateButton(panel, new Vector2(286f, y), new Vector2(128f, 34f), "Polo_2", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Polo_2));
+            CreateButton(panel, new Vector2(14f, y), new Vector2(96f, 34f), "Default", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Default_1));
+            CreateButton(panel, new Vector2(118f, y), new Vector2(96f, 34f), "Polo 1", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Polo_1));
+            CreateButton(panel, new Vector2(222f, y), new Vector2(96f, 34f), "Polo 2", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Polo_2));
 
             y -= 42f;
-            CreateButton(panel, new Vector2(14f, y), new Vector2(128f, 34f), "Tee_1", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Tee_1));
-            CreateButton(panel, new Vector2(150f, y), new Vector2(128f, 34f), "Tee_2", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Tee_2));
-            CreateButton(panel, new Vector2(286f, y), new Vector2(128f, 34f), "随机一套", RandomNextByUser);
+            CreateButton(panel, new Vector2(14f, y), new Vector2(96f, 34f), "Tee 1", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Tee_1));
+            CreateButton(panel, new Vector2(118f, y), new Vector2(96f, 34f), "Tee 2", () => SelectSkinByUi(CostumeChangeService.CostumeSkinType.Tee_2));
+            CreateButton(panel, new Vector2(222f, y), new Vector2(96f, 34f), "随机", RandomNextByUser);
 
             y -= 50f;
-            CreateButton(panel, new Vector2(14f, y), new Vector2(128f, 34f), "应用并固定", () =>
+            CreateButton(panel, new Vector2(14f, y), new Vector2(148f, 34f), "应用并固定", () =>
             {
                 Mode = "fixed";
                 SaveConfig();
                 ApplySkinType(SelectedSkinType, true);
                 AddLog($"已应用并固定：{SelectedSkinType} ({(int)SelectedSkinType})");
             });
-            CreateButton(panel, new Vector2(150f, y), new Vector2(128f, 34f), "重载配置", ReloadConfigByUser);
-            CreateButton(panel, new Vector2(286f, y), new Vector2(128f, 34f), "隐藏面板", () =>
-            {
-                SetPanelVisible(false);
-            });
+            CreateButton(panel, new Vector2(170f, y), new Vector2(148f, 34f), "重载配置", ReloadConfigByUser);
 
-            LogText = CreateText("Logs", panel, new Vector2(14f, -246f), new Vector2(400f, 160f), string.Empty, 13, TextAnchor.UpperLeft);
+            LogText = CreateText("Logs", panel, new Vector2(14f, -238f), new Vector2(298f, 104f), string.Empty, 12, TextAnchor.UpperLeft);
             UpdateUiText();
-            SetPanelVisible(IsWindowVisible);
+            SyncPanelVisible();
         }
 
         private static void SetPanelVisible(bool isVisible)
         {
             IsWindowVisible = isVisible;
-            PanelObject?.SetActive(isVisible);
-            ToggleObject?.SetActive(!isVisible);
-            AddLog(isVisible ? "已显示衣服控制面板。" : "已隐藏面板，点击左上角“衣装”按钮可恢复。");
+            SyncPanelVisible();
+            AddLog(isVisible ? "已展开衣装面板。" : "已收起衣装面板。");
+        }
+
+        private static void SyncPanelVisible()
+        {
+            PanelObject?.SetActive(IsWindowVisible);
+            ToggleObject?.SetActive(!IsWindowVisible);
         }
 
         private static void EnsureEventSystem()
@@ -284,12 +209,17 @@ namespace Sherry.CostumeControl
 
         private static RectTransform CreateRect(string name, Transform parent, Vector2 anchoredPosition, Vector2 size)
         {
+            return CreateAnchoredRect(name, parent, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), anchoredPosition, size);
+        }
+
+        private static RectTransform CreateAnchoredRect(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 anchoredPosition, Vector2 size)
+        {
             var rectObject = new GameObject(name);
             rectObject.transform.SetParent(parent, false);
             var rectTransform = rectObject.AddComponent<RectTransform>();
-            rectTransform.anchorMin = new Vector2(0f, 1f);
-            rectTransform.anchorMax = new Vector2(0f, 1f);
-            rectTransform.pivot = new Vector2(0f, 1f);
+            rectTransform.anchorMin = anchorMin;
+            rectTransform.anchorMax = anchorMax;
+            rectTransform.pivot = pivot;
             rectTransform.anchoredPosition = anchoredPosition;
             rectTransform.sizeDelta = size;
             return rectTransform;
@@ -322,6 +252,54 @@ namespace Sherry.CostumeControl
             var text = CreateText(label + "Text", rectTransform, new Vector2(0f, 0f), size, label, 14, TextAnchor.MiddleCenter);
             text.raycastTarget = false;
             return rectTransform.gameObject;
+        }
+
+        private static GameObject CreateCircleButton(Transform parent, Vector2 anchoredPosition, float size, string label, Action onClick)
+        {
+            var rectTransform = CreateAnchoredRect(label + "CircleButton", parent, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), anchoredPosition, new Vector2(size, size));
+            var image = rectTransform.gameObject.AddComponent<Image>();
+            image.sprite = CreateCircleSprite(96, new Color(0.12f, 0.13f, 0.18f, 0.82f), new Color(0.72f, 0.76f, 0.88f, 0.86f));
+
+            var button = rectTransform.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            button.onClick.AddListener(() => onClick());
+
+            var text = CreateText(label + "Text", rectTransform, new Vector2(0f, 0f), new Vector2(size, size), label, 18, TextAnchor.MiddleCenter);
+            text.raycastTarget = false;
+            return rectTransform.gameObject;
+        }
+
+        private static Sprite CreateCircleSprite(int size, Color fillColor, Color borderColor)
+        {
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            var center = (size - 1) * 0.5f;
+            var radius = size * 0.46f;
+            var innerRadius = radius - 4f;
+
+            for (var y = 0; y < size; y++)
+            {
+                for (var x = 0; x < size; x++)
+                {
+                    var dx = x - center;
+                    var dy = y - center;
+                    var distance = Mathf.Sqrt(dx * dx + dy * dy);
+                    var color = Color.clear;
+
+                    if (distance <= innerRadius)
+                    {
+                        color = fillColor;
+                    }
+                    else if (distance <= radius)
+                    {
+                        color = borderColor;
+                    }
+
+                    texture.SetPixel(x, y, color);
+                }
+            }
+
+            texture.Apply();
+            return Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f));
         }
 
         private static void SelectSkinByUi(CostumeChangeService.CostumeSkinType skinType)
