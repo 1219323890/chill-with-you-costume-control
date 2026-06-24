@@ -5,13 +5,13 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $propsPath = Join-Path $repoRoot "GameReferences.props"
 
 if (!(Test-Path $propsPath)) {
-    throw "缺少 GameReferences.props。请先复制 GameReferences.props.example 为 GameReferences.props，并确认 GameRoot 指向游戏安装目录。"
+    throw "Missing GameReferences.props. Copy GameReferences.props.example to GameReferences.props and set GameRoot."
 }
 
 [xml]$props = Get-Content -Raw -Encoding UTF8 $propsPath
 $gameRoot = $props.Project.PropertyGroup.GameRoot
 if ([string]::IsNullOrWhiteSpace($gameRoot)) {
-    throw "GameReferences.props 中缺少 GameRoot。"
+    throw "GameRoot is missing in GameReferences.props."
 }
 
 $project = Join-Path $repoRoot "src\Sherry.CostumeControl\Sherry.CostumeControl.csproj"
@@ -22,4 +22,4 @@ $targetDir = Join-Path $gameRoot "BepInEx\plugins"
 New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
 Copy-Item -LiteralPath $dll -Destination (Join-Path $targetDir "Sherry.CostumeControl.dll") -Force
 
-Write-Host "已安装到：$targetDir"
+Write-Host "Installed to: $targetDir"
